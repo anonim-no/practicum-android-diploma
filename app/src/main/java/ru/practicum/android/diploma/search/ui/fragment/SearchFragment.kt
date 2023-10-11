@@ -123,6 +123,7 @@ class SearchFragment : Fragment() {
         vacanciesAdapter?.notifyDataSetChanged()
         vacanciesAdapter?.items = vacancies
         binding.searchScreenRecyclerView.isVisible = true
+        binding.searchScreenRecyclerView.scrollToPosition(0)
         binding.counterVacanciesTextView.text = resources.getQuantityString(
             R.plurals.vacancy_plural, foundVacancies, foundVacancies
         )
