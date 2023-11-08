@@ -7,7 +7,7 @@ import ru.practicum.android.diploma.common.domain.model.filter_models.IndustryFi
 
 interface FiltersLocalDataSource {
     fun getFilterOptions(): Filter?
-    fun setCountry(country: CountryFilter)
+    fun setCountry(country: CountryFilter?)
     fun setArea(area: AreaFilter?)
     fun setIndustry(industry: IndustryFilter)
     fun setSalary(salary: Int)
