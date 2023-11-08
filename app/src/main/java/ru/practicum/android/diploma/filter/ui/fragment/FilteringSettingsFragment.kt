@@ -1,5 +1,4 @@
 package ru.practicum.android.diploma.filter.ui.fragment
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -13,9 +12,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.Toast
-import androidx.activity.addCallback
 import androidx.activity.addCallback
 import androidx.annotation.ColorRes
 import androidx.annotation.RequiresApi
@@ -41,12 +38,9 @@ import ru.practicum.android.diploma.common.custom_view.ButtonWithSelectedValues
 import ru.practicum.android.diploma.common.custom_view.model.ButtonWithSelectedValuesLocationState
 import ru.practicum.android.diploma.common.custom_view.model.ButtonWithSelectedValuesTextState
 import ru.practicum.android.diploma.databinding.FragmentFilteringSettingsBinding
-import ru.practicum.android.diploma.filter.ui.model.ButtonState
-import ru.practicum.android.diploma.filter.ui.model.ClearFieldButtonNavigationState
 import ru.practicum.android.diploma.filter.ui.model.DialogState
-import ru.practicum.android.diploma.filter.ui.model.FilterFieldsState
-import ru.practicum.android.diploma.filter.ui.model.LocationState
 import ru.practicum.android.diploma.filter.ui.model.FilterSettingsState
+import ru.practicum.android.diploma.filter.ui.model.LocationState
 import ru.practicum.android.diploma.filter.ui.viewModel.FilteringSettingsViewModel
 
 class FilteringSettingsFragment : Fragment() {
@@ -54,8 +48,6 @@ class FilteringSettingsFragment : Fragment() {
     private var _binding: FragmentFilteringSettingsBinding? = null
     private val binding get() = _binding!!
     private val viewModel by viewModel<FilteringSettingsViewModel>()
-
-    private var salary = BLANK_STRING
 
     private var confirmDialog: MaterialAlertDialogBuilder? = null
 
@@ -99,7 +91,7 @@ class FilteringSettingsFragment : Fragment() {
     }
 
     private fun initOnClicks() {
-        binding.areaCustomView.onButtonClick {
+        binding.areaCustomView.onIconButtonClick {
             viewModel.areaButtonClicked()
             binding.selectedEnterTheAmountTextInputEditText.clearFocus()
         }
@@ -108,7 +100,7 @@ class FilteringSettingsFragment : Fragment() {
             viewModel.onAreaFieldClicked()
         }
 
-        binding.industryCustomView.onButtonClick {
+        binding.industryCustomView.onIconButtonClick {
             viewModel.industryButtonClicked()
             binding.selectedEnterTheAmountTextInputEditText.clearFocus()
         }
@@ -143,11 +135,6 @@ class FilteringSettingsFragment : Fragment() {
 
         binding.applyButton.setOnClickListener {
             viewModel.applyButtonClicked()
-
-            val bundle = Bundle()
-            bundle.putBoolean(IS_SEARCH_WITH_NEW_FILTER_NEED, true)
-            setFragmentResult(IS_SEARCH_WITH_NEW_FILTER_NEED, bundle)
-            findNavController().popBackStack()
         }
 
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
@@ -167,6 +154,14 @@ class FilteringSettingsFragment : Fragment() {
     private fun initObservers() {
         viewModel.observeStateLiveData().observe(viewLifecycleOwner) {
             render(it)
+        }
+
+        viewModel.observeDialogState().observe(viewLifecycleOwner) {
+            renderDialogState(it)
+        }
+
+        viewModel.observeLocationState().observe(viewLifecycleOwner) {
+            renderLocationState(it)
         }
     }
 
@@ -205,12 +200,7 @@ class FilteringSettingsFragment : Fragment() {
             FilterSettingsState.Navigate.NavigateBackWithoutResult -> {
                 findNavController().popBackStack()
             }
-        viewModel.observeDialogState().observe(viewLifecycleOwner) {
-            renderDialogState(it)
-        }
 
-        viewModel.observeLocationState().observe(viewLifecycleOwner) {
-            renderLocationState(it)
 
             FilterSettingsState.Navigate.NavigateToChoosingIndustry -> {
                 findNavController().navigate(R.id.action_filteringSettingsFragment_to_filteringSectorFragment)
@@ -240,14 +230,22 @@ class FilteringSettingsFragment : Fragment() {
             viewModel.setOnlyWithSalary(isChecked)
         }
     }
+
     private fun renderButtonWithSelectedValues(
         text: String, customView: ButtonWithSelectedValues, hint: String
     ) {
         if (text.isNotBlank()) {
-            customView.render(
-                ButtonWithSelectedValuesState.Content(
+            customView.renderTextState(
+                ButtonWithSelectedValuesTextState.Content(
                     text = text, hint = hint
                 )
+            )
+        } else {
+            customView.renderTextState(
+                ButtonWithSelectedValuesTextState.Empty(hint = hint)
+            )
+        }
+    }
 
     private fun initConfirmDialog() {
         confirmDialog = MaterialAlertDialogBuilder(
@@ -260,86 +258,6 @@ class FilteringSettingsFragment : Fragment() {
             }.setPositiveButton(R.string.location_procced) { _, _ ->
                 viewModel.openAppsSettings()
             }
-    }
-
-    private fun renderButtonWithSelectedValues(
-        state: FilterFieldsState, customView: ButtonWithSelectedValues, hint: String
-    ) {
-        when (state) {
-            is FilterFieldsState.Content -> customView.renderTextState(
-                ButtonWithSelectedValuesTextState.Content(
-                    text = state.text, hint = hint
-                )
-            )
-
-            FilterFieldsState.Empty -> customView.renderTextState(
-                ButtonWithSelectedValuesTextState.Empty(
-                    hint = hint
-                )
-            )
-        }
-    }
-
-    private fun renderClearAreaButtonNavigation(state: ClearFieldButtonNavigationState) {
-        viewModel.updateButtonsStates()
-        when (state) {
-            ClearFieldButtonNavigationState.ClearField -> viewModel.clearArea()
-            ClearFieldButtonNavigationState.Navigate -> {
-                findNavController().navigate(R.id.action_filteringSettingsFragment_to_filteringChoosingWorkplaceFragment)
-            }
-        }
-    }
-
-    private fun renderClearIndustryButtonNavigation(state: ClearFieldButtonNavigationState) {
-        viewModel.updateButtonsStates()
-        when (state) {
-            ClearFieldButtonNavigationState.ClearField -> viewModel.clearIndustry()
-            ClearFieldButtonNavigationState.Navigate -> {
-                findNavController().navigate(R.id.action_filteringSettingsFragment_to_filteringSectorFragment)
-            }
-        }
-    }
-
-    private fun renderButtonState(state: ButtonState, button: Button) {
-        when (state) {
-            ButtonState.Gone -> button.isVisible = false
-            ButtonState.Visible -> button.isVisible = true
-        }
-    }
-
-    private fun renderDialogState(state: DialogState) {
-        when (state) {
-            DialogState.ShowDialog -> confirmDialog?.show()
-        }
-    }
-
-    private fun setFragmentResult() {
-        val bundle = Bundle()
-        bundle.putBoolean(IS_SEARCH_WITH_NEW_FILTER_NEED, true)
-        setFragmentResult(IS_SEARCH_WITH_NEW_FILTER_NEED, bundle)
-    }
-
-    private fun renderLocationState(state: LocationState) {
-        when (state) {
-            LocationState.Empty -> binding.areaCustomView.renderLocationState(
-                ButtonWithSelectedValuesLocationState.LocationEmpty
-            )
-
-            LocationState.Error -> showLocationError()
-            LocationState.Loading -> binding.areaCustomView.renderLocationState(
-                ButtonWithSelectedValuesLocationState.LocationLoading
-            )
-        } else {
-            customView.render(
-                ButtonWithSelectedValuesState.Empty(hint = hint)
-            )
-        }
-    }
-
-            LocationState.Success -> binding.areaCustomView.renderLocationState(
-                ButtonWithSelectedValuesLocationState.LocationSuccess
-            )
-        }
     }
 
     private fun setHintColor(text: String) {
@@ -361,9 +279,44 @@ class FilteringSettingsFragment : Fragment() {
                     )
                 }
             }
+        }
+    }
+
+    private fun setTextInputLayoutHintColor(
+        textInputLayout: TextInputLayout, context: Context, @ColorRes colorIdRes: Int
+    ) {
+        textInputLayout.defaultHintTextColor =
+            ColorStateList.valueOf(ContextCompat.getColor(context, colorIdRes))
+    }
+
     private fun showLocationError() {
         Toast.makeText(requireContext(), R.string.location_error, Toast.LENGTH_LONG).show()
         binding.areaCustomView.renderLocationState(ButtonWithSelectedValuesLocationState.LocationEmpty)
+    }
+
+    private fun renderDialogState(state: DialogState) {
+        when (state) {
+            DialogState.ShowDialog -> confirmDialog?.show()
+        }
+    }
+
+    private fun renderLocationState(state: LocationState) {
+
+        when (state) {
+            LocationState.Empty -> binding.areaCustomView.renderLocationState(
+                ButtonWithSelectedValuesLocationState.LocationEmpty
+            )
+
+            LocationState.Error -> showLocationError()
+            LocationState.Loading -> binding.areaCustomView.renderLocationState(
+                ButtonWithSelectedValuesLocationState.LocationLoading
+            )
+
+            LocationState.Success -> binding.areaCustomView.renderLocationState(
+                ButtonWithSelectedValuesLocationState.LocationSuccess
+            )
+
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -419,24 +372,12 @@ class FilteringSettingsFragment : Fragment() {
         }
     }
 
-    private fun setTextInputLayoutHintColor(
-        textInputLayout: TextInputLayout, context: Context, @ColorRes colorIdRes: Int
-    ) {
-        textInputLayout.defaultHintTextColor =
-            ColorStateList.valueOf(ContextCompat.getColor(context, colorIdRes))
     private fun isLocationEnabled(): Boolean {
         val locationManager: LocationManager =
             requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
             LocationManager.NETWORK_PROVIDER
         )
-    }
-
-    private fun setTextInputLayoutHintColor(
-        textInputLayout: TextInputLayout, context: Context, @ColorRes colorIdRes: Int
-    ) {
-        textInputLayout.defaultHintTextColor =
-            ColorStateList.valueOf(ContextCompat.getColor(context, colorIdRes))
     }
 
     companion object {

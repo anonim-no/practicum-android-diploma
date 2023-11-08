@@ -5,8 +5,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.launch
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.practicum.android.diploma.common.domain.model.filter_models.Filter
@@ -27,15 +25,12 @@ import ru.practicum.android.diploma.filter.domain.useCase.SetIndustryFilterUseCa
 import ru.practicum.android.diploma.filter.domain.useCase.SetOnlyWithSalaryFilterUseCase
 import ru.practicum.android.diploma.filter.domain.useCase.SetSalaryFilterUseCase
 import ru.practicum.android.diploma.filter.ui.mapper.FilterDomainToFilterUiConverter
-import ru.practicum.android.diploma.filter.ui.model.ButtonState
-import ru.practicum.android.diploma.filter.ui.model.ClearFieldButtonNavigationState
 import ru.practicum.android.diploma.filter.ui.model.DialogState
-import ru.practicum.android.diploma.filter.ui.model.FilterFieldsState
+import ru.practicum.android.diploma.filter.ui.model.FilterSettingsState
 import ru.practicum.android.diploma.filter.ui.model.LocationState
 import ru.practicum.android.diploma.search.domain.model.ErrorStatusDomain
 import ru.practicum.android.diploma.search.ui.model.SingleLiveEvent
 import ru.practicum.android.diploma.vacancy.domain.useCase.OpenAppsSettingsUseCase
-import ru.practicum.android.diploma.filter.ui.model.FilterSettingsState
 
 class FilteringSettingsViewModel(
     private val getFilterOptionsUseCase: GetFilterOptionsUseCase,
@@ -71,28 +66,20 @@ class FilteringSettingsViewModel(
 
     var salary: String = BLANK_STRING
     private var currentState: FilterSettingsState.Content? = null
-    private val coroutineExceptionHandler =
-        CoroutineExceptionHandler { _, _ -> locationState.value = LocationState.Error }
 
-
-    fun observeAreaState(): LiveData<FilterFieldsState> = areaState
-    fun observeIndustryState(): LiveData<FilterFieldsState> = industryState
-    fun observeSalaryState(): LiveData<String> = salaryState
-    fun observeOnlyWithSalaryState(): LiveData<Boolean> = onlyWithSalaryState
-
-    fun observeDialogState(): LiveData<DialogState> = dialogState
-    fun observeLocationState(): LiveData<LocationState> = locationState
-
-
-    fun observeClearAreaButtonNavigation(): LiveData<ClearFieldButtonNavigationState> =
-        clearAreaButtonNavigation
 
     private var isClickAllowed = true
 
+    private val coroutineExceptionHandler =
+        CoroutineExceptionHandler { _, _ -> locationState.value = LocationState.Error }
     init {
         filter = getFilterOptionsUseCase.execute()
         isFiltersSetBefore = filter != null
     }
+
+    fun observeDialogState(): LiveData<DialogState> = dialogState
+
+    fun observeLocationState(): LiveData<LocationState> = locationState
 
     fun observeStateLiveData(): LiveData<FilterSettingsState> = stateLiveData
 
@@ -158,10 +145,6 @@ class FilteringSettingsViewModel(
                 updateButtonsStates()
             }
         }
-    fun clearAreaButtonClicked() {
-        clearArea()
-        updateButtonsStates()
-        locationState.value = LocationState.Empty
     }
 
     fun industryButtonClicked() {
@@ -296,6 +279,7 @@ class FilteringSettingsViewModel(
 
     fun getLocation() {
         locationState.value = LocationState.Loading
+
     }
 
     private fun proceedGeocoderResult(
@@ -312,7 +296,9 @@ class FilteringSettingsViewModel(
                 val countryFilter = location?.country
                 if (areaFilter != null || countryFilter != null) {
                     setAreaFilterUseCase.execute(areaFilter)
-                    setCountryFilterUseCase.execute(countryFilter)
+                    if (countryFilter != null) {
+                        setCountryFilterUseCase.execute(countryFilter)
+                    }
                     updateStates()
                     locationState.value = LocationState.Success
                 } else locationState.value = LocationState.Error
